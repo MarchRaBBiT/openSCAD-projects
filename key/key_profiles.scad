@@ -123,6 +123,11 @@ module sa_row(n=1) {
     $total_depth = 12.925;
     $top_tilt = 7;
     children();
+  } else if (n == 5){
+    $total_depth = 12.5 - $dish_depth;
+    $top_tilt = 0;
+    $inverted_dish = true;
+    children();
   }
 }
 

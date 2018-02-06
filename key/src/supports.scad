@@ -1,21 +1,15 @@
-// flared support designed for FDM printing, for the normal cherry stem
-module flared(loft, height) {
-  translate([0,0,loft]){
-    linear_extrude(height=height, scale = [height/2,height/2]){
-      children();
-    }
-  }
-}
+include <supports/flared.scad>
+include <supports/flat.scad>
+include <supports/bars.scad>
 
-module flat(loft, height) {
-  translate([0,0,loft + 500]){
-    cube(1000, center=true);
-  }
-}
-
-module bars(loft, height) {
-  translate([0,0,loft + height / 2]){
-    cube([2, 100, height], center = true);
-    cube([100, 2, height], center = true);
+module supports(type, stem_type, loft, height) {
+  if (type == "flared") {
+    flared_support(stem_type, loft, height);
+  } else if (type == "flat") {
+    flat_support(stem_type, loft, height);
+  } else if (type == "bars") {
+    bars_support(stem_type, loft, height);
+  } else {
+    echo("Warning: unsupported $support_type");
   }
 }

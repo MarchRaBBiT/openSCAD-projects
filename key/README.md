@@ -8,7 +8,7 @@ Relevant links:
 
 ## Let's Go! I wanna make a keycap!
 
-At the highest level this library supports Cherry and Alps switches, and has pre-defined key profiles for SA, DSA, DCS, and (some form of) OEM keycaps. `keys.scad` is meant as an entry point for everything but the most technical use; there should already be an example at the bottom to get you started! Pre-programmed key profiles can be found at `key_profiles.scad`.
+At the highest level this library supports Cherry and Alps switches, and has pre-defined key profiles for SA, DSA, DCS, and (some form of) OEM keycaps. `keys.scad` is meant as an entry point for everything but the most technical use; there should already be an example at the bottom to get you started! Pre-programmed key profiles can be found at the `key_profiles` directory.
 
 Every key starts with defaults that are overridden by each function call. The simplest cherry key you can make would be:
 
@@ -22,21 +22,21 @@ cherry() key();
 which is a bog-standard DCS row 5 keycap. To change key profile or make varying width keys, you can use the row and unit length functions, like so:
 
 ```
-sa_row(2) u(2) cherry() key();
+sa_row(2) 2u() cherry() key();
 ```
 
 ![a 2 unit SA row 2 cherry key](assets/example2.JPG)
 
 ## What if I want to customize my keycaps?
 
-There is a bevy of supporting functions to customize your keycaps. You can add a brim to more easily print the stem, switch up the stem support type, make 2x2 keycaps for a POS system, add legends, rotate stems, and more. These functions can be found in `key_profiles.scad`, `key_sizes.scad`, `key_transformations.scad`, and `key_types.scad` currently, and can be referenced directly in `keys.scad`.
+There is a bevy of supporting functions to customize your keycaps. You can add a brim to more easily print the stem, switch up the stem support type, make 2x2 keycaps for a POS system, add legends, rotate stems, and more. These functions can be found in `key_profiles/`, `key_sizes.scad`, `key_transformations.scad`, and `key_types.scad` currently, and can be referenced directly in `keys.scad`.
 
 If you wanted to generate some 2u stabilized keycaps for an Ergodox for instance, you could do something like this:
 
 ```
 legends = ["Enter", "Escape", "Tab", "Shift"];
 for(y=[0:3]) {
-  translate_u(0,y) 2u() dsa_row() stabilized() legend(legends[y], inset=true) cherry() key();
+  translate_u(0,y) 2u() dsa_row() stabilized() cherry() key(legends[y], inset=true);
 }
 ```
 
@@ -52,37 +52,56 @@ cherry() key() {
 
 ![an artisan key with no-face on it](assets/example4.JPG)
 
+(no face courtesy of [this thing](https://www.thingiverse.com/thing:519727/))
+
+Artisan support also supports _subtracting_ children by doing `key(inset=true) { ... }`, which is super helpful if you want to make keycaps with legends that are not text. The children will be placed just above the middle of the dish as per usual; you will need to translate them downwards (`ex translate([0,0,-1])`) to get them to 'dig in' to the top of the key.
+
 ## What if I want to get _really_ technical?
 
-If you're not afraid to write some code yourself, at the base level this library _should_ function well as a key profile design library. by loading up `src/key.scad` (notice no s) you can tweak variables in `src/settings.scad` to prototype your own profiles. You can design your own keyset with custom width height and depth, dish tilt, top skew, fonts, wall thickness, etc.
+At the base level this library should function well as a key profile design library. by loading up `src/key.scad` (notice no s) you can tweak variables in `src/settings.scad` to prototype your own profiles. There are currently 44 different settings to tweak in `src/settings.scad` including width height and depth of the keycap, dish tilt, top skew, fonts, wall thickness, etc.
 
-In addition, the library should be abstract enough to handle new dish types, keystems, and key shapes, in case you want to design your own DataMancer keycaps, support buckling spring keyboards (maybe) or design some kind of triangular dished profile. `src/shapes.scad` `src/stems.scad` and `src/dishes.scad` all have a 'selector' module at the top that should allow you to implement your own creations alongside what already exists.
+### What if I want to get even more technical than that?
+
+Now we're talkin!
+
+This library should be abstract enough to handle new dish types, keystems, and key shapes, in case you want to design your own Typewriter-style keycaps, support buckling spring keyboards or design some kind of triangular dished profile. `src/shapes.scad` `src/stems.scad` and `src/dishes.scad` all have a 'selector' module that should allow you to implement your own creations alongside what already exists in their constituent folders.
 
 Here's an example of tweaking the settings and code to make a 'stop sign' key profile:
 
 In `key_shape()` in `shapes.scad`:
 
 ```
- else if ($key_shape_type == "circle") {
-   rotate([0,0,22.5]) circle(d=width - width_difference, $fn=8);
+ else if ($key_shape_type == "stop_sign") {
+   stop_sign_shape(size, delta, progress);
  }
+```
+
+in `src/shapes/stop_sign.scad`:
+
+```
+module stop_sign_shape(size, delta, progress){
+  rotate([0,0,22.5]) circle(d=size[0] - delta[0], $fn=8);
+}
 ```
 
 In `keys.scad`:
 
 ```
 union() {
+  // make the font smaller
   $font_size = 3;
+  // top of keycap is the same size as the bottom
   $width_difference = 0;
   $height_difference = 0;
-  $key_shape_type="circle";
+  $key_shape_type="stop_sign";
   $dish_type = "cylindrical";
+  // some keycap tops are slid backwards a little, and we don't want that
   $top_skew = 0;
 
   legends = ["Stop..", "Hammer", "time!"];
 
   for(x=[0:len(legends)-1]) {
-    translate_u(x) legend(legends[x]) cherry() key();
+    translate_u(x) cherry() key(legends[x]);
   }
 }
 ```
@@ -93,9 +112,9 @@ union() {
 
 Prints from this library are still challenging, despite all efforts to the contrary. Resin printers can create great looking keycaps; FDM printers can create usable keys that look alright, but may require tweaking to get prints acceptable. There are a few quick things that you can do:
 
-1. If your switch isn't fitting in the keycap, try upping the slop factor, accessed by giving your keystem function a numeric value (eg `cherry(0.5) key()`). This will lengthen the cross and decrease the overall size of the keystem. The default value is 0.3, and represents millimeters. Note that even if you have a resin printer, you should probably keep the default value; keys printed with 0 slop will barely fit on the stem.
+1. If your stem isn't fitting in the switch, try upping the slop factor, accessed by giving your keystem function a numeric value (eg `cherry(0.5) key()`). This will lengthen the cross and decrease the overall size of the keystem. The default value is 0.3, and represents millimeters. Note that even if you have a resin printer, you should probably keep the default value; keys printed with 0 slop will barely fit on the stem.
 
-2. If your keystem breaks off mid-print, you can enable a brim by adding the `brimmed()` modifier. This will give a solid base for the keystem to anchor into.
+2. If your keystem breaks off the bed mid-print, you can enable a brim by adding the `brimmed()` modifier. This will give a solid base for the keystem to anchor into.
 
 3. If you are unsatisfied with the quality of the top surface, you can try printing the keycap on a different surface than the bottom, though it may impact the quality of the stem.
 
